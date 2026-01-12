@@ -1,0 +1,62 @@
+name: Android Build (assemble debug APK)
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build Android debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Make gradlew executable (root or android/)
+        run: |
+          if [ -f ./gradlew ]; then chmod +x ./gradlew; fi
+          if [ -f android/gradlew ]; then chmod +x android/gradlew; fi
+
+      - name: Assemble debug APK (try root then android/)
+        run: |
+          set -e
+          if [ -f ./gradlew ]; then
+            echo "Running ./gradlew assembleDebug at repo root"
+            ./gradlew assembleDebug --no-daemon
+            exit 0
+          fi
+          if [ -f android/gradlew ]; then
+            echo "Running android/gradlew assembleDebug"
+            cd android
+            ./gradlew assembleDebug --no-daemon
+            exit 0
+          fi
+          echo "::error::No Gradle wrapper found at repo root or android/ — add the Gradle wrapper or update workflow." >&2
+          exit 1
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: railwallet-debug-apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            android/app/build/outputs/apk/debug/*.apk
