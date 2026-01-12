@@ -52,8 +52,7 @@ jobs:
             ./gradlew assembleDebug --stacktrace
           elif [ -f "./android/gradlew" ]; then
             echo "Building with ./gradlew in android/ subfolder..."
-            cd android
-            ./gradlew assembleDebug --stacktrace
+            (cd android && ./gradlew assembleDebug --stacktrace)
           else
             echo "ERROR: No Gradle wrapper (gradlew) found!"
             echo "Expected locations:"
@@ -70,7 +69,5 @@ jobs:
         if: success()
         with:
           name: railwallet-debug-apk
-          path: |
-            app/build/outputs/apk/debug/*.apk
-            android/app/build/outputs/apk/debug/*.apk
+          path: '**/build/outputs/apk/debug/*.apk'
           if-no-files-found: warn
